@@ -1,0 +1,20 @@
+syntax = "proto3";
+package objectenc;
+
+// EncryptedBlob contains a potentially encrypted blob of data.
+message EncryptedBlob {
+  // EncryptionType is the encryption type in use.
+  EncryptionType enc_type = 1;
+  // EncData contains the encrypted data.
+  bytes enc_data = 2;
+  // EncMetadata contains any metadata required for decryption.
+  bytes enc_metadata = 3;
+}
+
+// EncryptionType is the object encryption type.
+enum EncryptionType {
+  // EncryptionType_UNENCRYPTED is the unencrypted value.
+  EncryptionType_UNENCRYPTED = 0;
+  // EncryptionType_AES encrypts the data with an out-of-band hashed AES key.
+  EncryptionType_AES = 1;
+}

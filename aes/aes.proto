@@ -1,0 +1,22 @@
+syntax = "proto3";
+package aes;
+
+// AESMetadata is the AES encryption metadata.
+message AESMetadata {
+  // KeySize is the AES key size.
+  KeySize key_size = 1;
+  // KeyHash is the multihash of the key.
+  bytes key_hash = 2;
+  // KeyHashSalt is the prefixed salt on the key hash.
+  bytes key_hash_salt = 3;
+  // Iv is the encryption IV.
+  // Must be 16 bytes.
+  bytes iv = 4;
+}
+
+// KeySize is the AES key size.
+enum KeySize {
+  KeySize_AES256 = 0;
+  KeySize_AES192 = 1;
+  KeySize_AES128 = 2;
+}
