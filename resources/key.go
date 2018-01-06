@@ -17,9 +17,14 @@ type KeySaltMultihash interface {
 type KeyResource struct {
 	// KeySaltMultihash is the key multihash with a prefixed salt.
 	KeySaltMultihash KeySaltMultihash
+	// EncryptionType is the expected encryption type.
+	EncryptionType objectenc.EncryptionType
+	// Encrypting indicates if we are encrypting or decrypting.
+	Encrypting bool
+	// EncryptingData contains the data we are encrypting, of we are.
+	EncryptingData []byte
+
 	// KeyData is the resolved key data.
 	// Filled by resolver.
 	KeyData []byte
-	// EncryptionType is the expected encryption type.
-	EncryptionType objectenc.EncryptionType
 }

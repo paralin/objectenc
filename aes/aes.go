@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/objectenc"
 	"github.com/golang/protobuf/proto"
+	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
 )
 
@@ -35,24 +36,45 @@ func (a *AES) ValidateMetadata(data []byte) error {
 }
 
 // resolveCipher resolves the cipher
-func (a *AES) resolveCipher(ctx context.Context, resolver objectenc.ResourceResolverFunc, blob *objectenc.EncryptedBlob) (*AESMetadata, cipher.Stream, error) {
-	m, err := parseMetadata(blob.GetEncMetadata())
-	if err != nil {
-		return m, nil, err
+func (a *AES) resolveCipher(ctx context.Context, resolver objectenc.ResourceResolverFunc, blob *objectenc.EncryptedBlob, iv []byte, encryptDat []byte, keySaltMultihash KeySaltMultihash) (*KeyResource, cipher.Stream, error) {
+	if resolver == nil {
+		return nil, nil, errors.New("resolver required to lookup aes key")
 	}
 
-	keyResource := &KeyResource{KeySaltMultihash: m, EncryptionType: a.GetEncryptionType()}
-	if resolver == nil {
-		return m, nil, errors.New("resolver required to lookup aes key")
+	keyResource := &KeyResource{KeySaltMultihash: keySaltMultihash, EncryptionType: a.GetEncryptionType()}
+	if encryptDat != nil {
+		keyResource.Encrypting = true
+		keyResource.EncryptingData = encryptDat
 	}
-	// type ResourceResolverFunc func(ctx context.Context, blob *EncryptedBlob, resourceCtr interface{}) error
+
 	if err := resolver(ctx, blob, keyResource); err != nil {
-		return m, nil, err
+		return keyResource, nil, err
+	}
+
+	blk, err := aes.NewCipher(keyResource.KeyData)
+	if err != nil {
+		return keyResource, nil, errors.Wrap(err, "build cipher")
+	}
+
+	return keyResource, cipher.NewCTR(blk, iv), nil
+}
+
+// DecryptBlob decrypts an encrypted blob.
+// Resolves the resource KeyResource.
+func (a *AES) DecryptBlob(ctx context.Context, resolver objectenc.ResourceResolverFunc, blob *objectenc.EncryptedBlob) ([]byte, error) {
+	m, err := parseMetadata(blob.GetEncMetadata())
+	if err != nil {
+		return nil, err
+	}
+
+	keyResource, stream, err := a.resolveCipher(ctx, resolver, blob, m.GetIv(), nil, m)
+	if err != nil {
+		return nil, err
 	}
 
 	expectedKeyLen := m.GetKeySize().GetKeyLen()
 	if expectedKeyLen != len(keyResource.KeyData) {
-		return m, nil, errors.Errorf(
+		return nil, errors.Errorf(
 			"retrieved key mh [%s] length %d != expected %d (%s)",
 			m.GetKeyMultihash().B58String(),
 			len(keyResource.KeyData),
@@ -61,25 +83,24 @@ func (a *AES) resolveCipher(ctx context.Context, resolver objectenc.ResourceReso
 		)
 	}
 
-	blk, err := aes.NewCipher(keyResource.KeyData)
-	if err != nil {
-		return m, nil, errors.Wrap(err, "build cipher")
-	}
-
-	return m, cipher.NewCTR(blk, m.GetIv()), nil
-}
-
-// DecryptBlob decrypts an encrypted blob.
-// Resolves the resource KeyResource.
-func (a *AES) DecryptBlob(ctx context.Context, resolver objectenc.ResourceResolverFunc, blob *objectenc.EncryptedBlob) ([]byte, error) {
-	_, stream, err := a.resolveCipher(ctx, resolver, blob)
-	if err != nil {
-		return nil, err
-	}
-
 	plain := make([]byte, len(blob.GetEncData()))
 	stream.XORKeyStream(plain, blob.GetEncData())
 	return plain, nil
+}
+
+type keyMultihashWithSalt struct {
+	mh         multihash.Multihash
+	saltPrefix []byte
+}
+
+// GetKeyMultihash returns the key multihash or nil of it is invalid.
+func (k *keyMultihashWithSalt) GetKeyMultihash() multihash.Multihash {
+	return k.mh
+}
+
+// GetKeyMultihashSalt returns the key multihash salt.
+func (k *keyMultihashWithSalt) GetKeyMultihashSalt() []byte {
+	return k.saltPrefix
 }
 
 // EncryptBlob encrypts a blob.
@@ -91,12 +112,8 @@ func (a *AES) EncryptBlob(ctx context.Context, resolver objectenc.ResourceResolv
 	}
 
 	blob := &objectenc.EncryptedBlob{EncType: a.GetEncryptionType()}
-	resource := &EncryptMetaResource{Data: data}
-	if resolver == nil {
-		return nil, errors.New("resolver required to lookup aes key")
-	}
-	// type ResourceResolverFunc func(ctx context.Context, blob *EncryptedBlob, resourceCtr interface{}) error
-	if err := resolver(ctx, blob, resource); err != nil {
+	resource, stream, err := a.resolveCipher(ctx, resolver, blob, iv, data, nil)
+	if err != nil {
 		return nil, err
 	}
 
@@ -105,27 +122,23 @@ func (a *AES) EncryptBlob(ctx context.Context, resolver objectenc.ResourceResolv
 		return nil, err
 	}
 
-	mhash := resource.KeyMultihash
-	if len(mhash) == 0 {
-		mh, err := HashKey(resource.KeyData, &resource.KeyHashSalt, 0)
+	mhash := resource.KeySaltMultihash
+	if mhash == nil {
+		var saltPrefix []byte
+		mh, err := HashKey(resource.KeyData, &saltPrefix, 0)
 		if err != nil {
 			return nil, err
 		}
-		mhash = []byte(mh)
-		resource.KeyMultihash = mhash
+
+		resource.KeySaltMultihash = &keyMultihashWithSalt{mh: mh, saltPrefix: saltPrefix}
+		mhash = resource.KeySaltMultihash
 	}
 
-	meta := &AESMetadata{KeySize: ks, KeyHash: mhash, KeyHashSalt: resource.KeyHashSalt, Iv: iv}
+	meta := &AESMetadata{KeySize: ks, KeyHash: mhash.GetKeyMultihash(), KeyHashSalt: mhash.GetKeyMultihashSalt(), Iv: iv}
 	blob.EncMetadata, err = proto.Marshal(meta)
 	if err != nil {
 		return nil, err
 	}
-
-	blk, err := aes.NewCipher(resource.KeyData)
-	if err != nil {
-		return nil, errors.Wrap(err, "build cipher")
-	}
-	stream := cipher.NewCTR(blk, iv)
 
 	enc := make([]byte, len(data))
 	stream.XORKeyStream(enc, data)
