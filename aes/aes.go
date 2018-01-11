@@ -36,7 +36,14 @@ func (a *AES) ValidateMetadata(data []byte) error {
 }
 
 // resolveCipher resolves the cipher
-func (a *AES) resolveCipher(ctx context.Context, resolver objectenc.ResourceResolverFunc, blob *objectenc.EncryptedBlob, iv []byte, encryptDat []byte, keySaltMultihash KeySaltMultihash) (*KeyResource, cipher.Stream, error) {
+func (a *AES) resolveCipher(
+	ctx context.Context,
+	resolver objectenc.ResourceResolverFunc,
+	blob *objectenc.EncryptedBlob,
+	iv []byte,
+	encryptDat []byte,
+	keySaltMultihash KeySaltMultihash,
+) (*KeyResource, cipher.Stream, error) {
 	if resolver == nil {
 		return nil, nil, errors.New("resolver required to lookup aes key")
 	}
