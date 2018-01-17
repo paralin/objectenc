@@ -43,7 +43,7 @@ func (a *AES) resolveCipher(
 	iv []byte,
 	encryptDat []byte,
 	keySaltMultihash KeySaltMultihash,
-) (*KeyResource, cipher.Stream, error) {
+) (*KeyResource, cipher.AEAD, error) {
 	if resolver == nil {
 		return nil, nil, errors.New("resolver required to lookup aes key")
 	}
@@ -58,12 +58,16 @@ func (a *AES) resolveCipher(
 		return keyResource, nil, err
 	}
 
+	var aead cipher.AEAD
 	blk, err := aes.NewCipher(keyResource.KeyData)
+	if err == nil {
+		aead, err = cipher.NewGCM(blk)
+	}
 	if err != nil {
 		return keyResource, nil, errors.Wrap(err, "build cipher")
 	}
 
-	return keyResource, cipher.NewCTR(blk, iv), nil
+	return keyResource, aead, nil
 }
 
 // DecryptBlob decrypts an encrypted blob.
@@ -90,9 +94,7 @@ func (a *AES) DecryptBlob(ctx context.Context, resolver objectenc.ResourceResolv
 		)
 	}
 
-	plain := make([]byte, len(blob.GetEncData()))
-	stream.XORKeyStream(plain, blob.GetEncData())
-	return plain, nil
+	return stream.Open(nil, m.GetIv(), blob.GetEncData(), nil)
 }
 
 type keyMultihashWithSalt struct {
@@ -147,9 +149,7 @@ func (a *AES) EncryptBlob(ctx context.Context, resolver objectenc.ResourceResolv
 		return nil, err
 	}
 
-	enc := make([]byte, len(data))
-	stream.XORKeyStream(enc, data)
-	blob.EncData = enc
+	blob.EncData = stream.Seal(nil, iv, data, nil)
 	return blob, nil
 }
 

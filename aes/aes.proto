@@ -2,6 +2,7 @@ syntax = "proto3";
 package aes;
 
 // AESMetadata is the AES encryption metadata.
+// AES uses GCM mode.
 message AESMetadata {
   // KeySize is the AES key size.
   KeySize key_size = 1;
