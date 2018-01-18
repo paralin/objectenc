@@ -3,6 +3,7 @@ package all
 import (
 	"github.com/aperturerobotics/objectenc"
 	"github.com/aperturerobotics/objectenc/aes"
+	"github.com/aperturerobotics/objectenc/secretbox"
 	// _ "github.com/aperturerobotics/objectenc/blowfish"
 )
 
@@ -10,5 +11,6 @@ import (
 func GetImplementations() []objectenc.EncryptionImpl {
 	return []objectenc.EncryptionImpl{
 		&aes.AES{},
+		&secretbox.SecretBox{},
 	}
 }

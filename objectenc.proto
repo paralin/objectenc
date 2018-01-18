@@ -17,4 +17,6 @@ enum EncryptionType {
   EncryptionType_UNENCRYPTED = 0;
   // EncryptionType_AES encrypts the data with an out-of-band hashed AES key.
   EncryptionType_AES = 1;
+  // EncryptionType_SECRET_BOX encrypts the data with an out-of-band secretbox key and nonce.
+  EncryptionType_SECRET_BOX = 2;
 }

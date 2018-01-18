@@ -53,6 +53,7 @@ func (x KeySize) String() string {
 func (KeySize) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
 // AESMetadata is the AES encryption metadata.
+// AES uses GCM mode.
 type AESMetadata struct {
 	// KeySize is the AES key size.
 	KeySize KeySize `protobuf:"varint,1,opt,name=key_size,json=keySize,enum=aes.KeySize" json:"key_size,omitempty"`
