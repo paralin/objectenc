@@ -20,7 +20,8 @@ type EncryptionImpl interface {
 	// DecryptBlob decrypts an encrypted blob.
 	DecryptBlob(context.Context, ResourceResolverFunc, *EncryptedBlob) ([]byte, error)
 	// EncryptBlob encrypts a blob.
-	EncryptBlob(context.Context, ResourceResolverFunc, []byte) (*EncryptedBlob, error)
+	// The last argument is the uncompressed data, if the data is compressed.
+	EncryptBlob(context.Context, ResourceResolverFunc, []byte, []byte) (*EncryptedBlob, error)
 }
 
 // encryptionImplsMtx is the mutex on the encryptionImpls map

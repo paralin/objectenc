@@ -29,7 +29,7 @@ func (p *Passthrough) DecryptBlob(_ context.Context, _ ResourceResolverFunc, blo
 }
 
 // EncryptBlob encrypts a blob.
-func (p *Passthrough) EncryptBlob(_ context.Context, _ ResourceResolverFunc, data []byte) (*EncryptedBlob, error) {
+func (p *Passthrough) EncryptBlob(_ context.Context, _ ResourceResolverFunc, data []byte, _ []byte) (*EncryptedBlob, error) {
 	return &EncryptedBlob{EncType: p.GetEncryptionType(), EncData: data}, nil
 }
 

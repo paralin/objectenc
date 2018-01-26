@@ -82,6 +82,7 @@ func EncryptWithResolver(
 		return nil, err
 	}
 
+	dataUncompressed := data
 	if cmpType != CompressionType_CompressionType_UNCOMPRESSED {
 		cmpImpl, err := GetCompressionImpl(cmpType)
 		if err != nil {
@@ -94,7 +95,7 @@ func EncryptWithResolver(
 		}
 	}
 
-	b, err := impl.EncryptBlob(ctx, resolver, data)
+	b, err := impl.EncryptBlob(ctx, resolver, data, dataUncompressed)
 	if err != nil {
 		return nil, err
 	}

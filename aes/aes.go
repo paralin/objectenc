@@ -114,7 +114,7 @@ func (k *keyMultihashWithSalt) GetKeyMultihashSalt() []byte {
 
 // EncryptBlob encrypts a blob.
 // Resolves the resource EncryptMetaResource.
-func (a *AES) EncryptBlob(ctx context.Context, resolver objectenc.ResourceResolverFunc, data []byte) (*objectenc.EncryptedBlob, error) {
+func (a *AES) EncryptBlob(ctx context.Context, resolver objectenc.ResourceResolverFunc, data []byte, uncompressedData []byte) (*objectenc.EncryptedBlob, error) {
 	iv := make([]byte, aesIvLen)
 	if _, err := rand.Read(iv); err != nil {
 		return nil, err

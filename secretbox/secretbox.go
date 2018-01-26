@@ -37,6 +37,7 @@ func (a *SecretBox) resolveSecretBoxResource(
 	resolver objectenc.ResourceResolverFunc,
 	blob *objectenc.EncryptedBlob,
 	encryptDat []byte,
+	encryptDatUncompressed []byte,
 ) (*SecretBoxResource, error) {
 	if resolver == nil {
 		return nil, errors.New("resolver required to lookup secretbox key and nonce")
@@ -44,7 +45,7 @@ func (a *SecretBox) resolveSecretBoxResource(
 
 	secretBoxResource := &SecretBoxResource{}
 	if encryptDat != nil {
-		secretBoxResource.Message = encryptDat
+		secretBoxResource.Message = encryptDatUncompressed
 	} else if blob != nil {
 		secretBoxResource.Box = blob.GetEncData()
 	}
@@ -69,7 +70,7 @@ func (a *SecretBox) DecryptBlob(ctx context.Context, resolver objectenc.Resource
 	}
 	_ = m
 
-	secretBoxResource, err := a.resolveSecretBoxResource(ctx, resolver, blob, nil)
+	secretBoxResource, err := a.resolveSecretBoxResource(ctx, resolver, blob, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -92,9 +93,9 @@ func (a *SecretBox) DecryptBlob(ctx context.Context, resolver objectenc.Resource
 
 // EncryptBlob encrypts a blob.
 // Resolves the resource SecretBoxResource.
-func (a *SecretBox) EncryptBlob(ctx context.Context, resolver objectenc.ResourceResolverFunc, data []byte) (*objectenc.EncryptedBlob, error) {
+func (a *SecretBox) EncryptBlob(ctx context.Context, resolver objectenc.ResourceResolverFunc, data []byte, uncompressedData []byte) (*objectenc.EncryptedBlob, error) {
 	blob := &objectenc.EncryptedBlob{EncType: a.GetEncryptionType()}
-	resource, err := a.resolveSecretBoxResource(ctx, resolver, blob, data)
+	resource, err := a.resolveSecretBoxResource(ctx, resolver, blob, data, uncompressedData)
 	if err != nil {
 		return nil, err
 	}
