@@ -8,6 +8,8 @@ objectenc is a wrapper for binary blobs with encryption type metadata.
 
 This package also includes cross-platform implementations of each encryption type. Each encryption implementation lives in a sub-package.
 
+Furthermore, compression algorithms are implemented in sub-packages.
+
 ## Resource Resolvers
 
 When encrypting and decrypting data, sometimes additional out-of-band information will be required, such as the private or public key for a peer ID or the encryption key.

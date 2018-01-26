@@ -9,6 +9,8 @@ message EncryptedBlob {
   bytes enc_data = 2;
   // EncMetadata contains any metadata required for decryption.
   bytes enc_metadata = 3;
+  // CompressionType is the compression type to use.
+  CompressionType compression_type = 4;
 }
 
 // EncryptionType is the object encryption type.
@@ -19,4 +21,12 @@ enum EncryptionType {
   EncryptionType_AES = 1;
   // EncryptionType_SECRET_BOX encrypts the data with an out-of-band secretbox key and nonce.
   EncryptionType_SECRET_BOX = 2;
+}
+
+// CompressionType is the compression type used.
+enum CompressionType {
+  // CompressionType_UNCOMPRESSED is the uncompressed mode.
+  CompressionType_UNCOMPRESSED = 0;
+  // CompressionType_SNAPPY indicates snappy compression.
+  CompressionType_SNAPPY = 1;
 }
